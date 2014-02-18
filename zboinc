@@ -59,7 +59,10 @@ def getResultCount(db, appname, serverstate):
         stateValue = boinc_serverstate[serverstate]
     elif (serverstate != "all"):
         return -1
-    sql = "SELECT COUNT(*) FROM result WHERE " + stateFilter 
+    sql = "SELECT COUNT(*) FROM result " 
+    if (stateFilter != "") or (appFilter != ""):
+        sql = sql + " WHERE "
+    sql = sql + stateFilter
     if (stateFilter != "") and (appFilter != ""):
         sql = sql + " AND "
     sql = sql + appFilter
@@ -69,12 +72,17 @@ def getResultCount(db, appname, serverstate):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Get BOINC Applications result count.")
     parser.add_argument("-a", "--appname", help="desired application name or all", required=True)
-    parser.add_argument("-s", "--serverstate", choices=['unsent','inprogress','over','all'],
+    parser.add_argument("-s", "--serverstate", 
+            #choices=['unsent','inprogress','over','all'],
             help="desired server state", default="all")
     args = parser.parse_args()
     
     db = MySQLdb.connect(db_host, db_user, db_pw, db_db)
-    print(*getResultCount(db, args.appname, args.serverstate))
+    result = getResultCount(db, args.appname, args.serverstate)
+    if (result == -1):
+        print("ZBX_NOTSUPPORTED") 
+    else:
+        print(*result)
 
     #result = getAppName(db, 119)
     #print("AppName:", *result)
