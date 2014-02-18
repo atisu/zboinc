@@ -1,7 +1,11 @@
 #!/usr/bin/python
 #
-# requires argparse
+# BOINC plugin for Zabbix v1.00
+# Attila Csaba Marosi <marosi.attila@sztaki.mta.hu>
 #
+# - Requires argparse
+# - Add something like the following to zabbix_agent.conf:
+#   UserParameter=boinc[*],/var/lib/boinc/edgidemo/project/bin/zboinc -a \$1 -s \$2
 
 from __future__ import print_function
 import MySQLdb
