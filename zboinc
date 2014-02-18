@@ -1,0 +1,86 @@
+#!/usr/bin/python
+#
+# requires argparse
+#
+
+from __future__ import print_function
+import MySQLdb
+import sys
+import argparse
+
+db_host = "localhost"
+db_pw   = "SQw5SofVSV"
+db_user = "boinc_edgidemo"
+db_db   = "boinc_edgidemo"
+
+
+boinc_serverstate = {
+        'inactive': 1,
+        'unsent': 2,
+        'inprogress': 4,
+        'over': 5}
+
+def warning(*objs):
+        print("WARNING: ", *objs, end='\n', file=sys.stderr)
+
+def doSqlQuery(db, sql, params):
+    cursor = db.cursor()
+    try:
+        if (params is None):
+            cursor.execute(sql)
+        else:    
+            cursor.execute(sql, params)
+        results = cursor.fetchall()
+        return results[0]
+    except:
+        warning("SQL Query returned no results: %s" % sql)
+        return -1 
+
+def getAppName(db, appid):
+    sql = "SELECT name FROM app WHERE id=%s" 
+    return doSqlQuery(db, sql, appid)
+
+def getAppId(db, appname):
+    sql = "SELECT id FROM app WHERE name=%s"
+    return doSqlQuery(db, sql, appname)
+
+def getResultCount(db, appname, serverstate):
+    appFilter = ""
+    stateFilter = ""
+    stateValue = None 
+    if (appname != "all"):
+        appid = getAppId(db, appname)
+        if (appid == -1):
+            warning("AppId not found")
+            return -1
+        appFilter = "appid=%s " % appid
+    if (serverstate in boinc_serverstate):
+        stateFilter = "server_state=%s "
+        stateValue = boinc_serverstate[serverstate]
+    elif (serverstate != "all"):
+        return -1
+    sql = "SELECT COUNT(*) FROM result WHERE " + stateFilter 
+    if (stateFilter != "") and (appFilter != ""):
+        sql = sql + " AND "
+    sql = sql + appFilter
+    return doSqlQuery(db, sql, stateValue)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Get BOINC Applications result count.")
+    parser.add_argument("-a", "--appname", help="desired application name or all", required=True)
+    parser.add_argument("-s", "--serverstate", choices=['unsent','inprogress','over','all'],
+            help="desired server state", default="all")
+    args = parser.parse_args()
+    
+    db = MySQLdb.connect(db_host, db_user, db_pw, db_db)
+    print(*getResultCount(db, args.appname, args.serverstate))
+
+    #result = getAppName(db, 119)
+    #print("AppName:", *result)
+    #result2 = getResultCount(db, result, "unsent")
+    #print("ResultCount:", *result2)
+
+
+
+
