@@ -19,7 +19,6 @@ db_pw   = ""
 db_user = ""
 db_db   = ""
 
-
 boinc_serverstate = {
         'inactive': 1,
         'unsent': 2,
@@ -37,10 +36,10 @@ def doSqlQuery(db, sql, params):
         else:    
             cursor.execute(sql, params)
         results = cursor.fetchall()
-        return results[0]
     except:
         warning("SQL Query returned no results: %s" % sql)
         return -1 
+    return results[0]
 
 def getAppName(db, appid):
     sql = "SELECT name FROM app WHERE id=%s" 
@@ -96,7 +95,6 @@ def failMiserably(message=""):
         warning(message)
     print("ZBX_NOTSUPPORTED") 
     sys.exit(255)
-    
 
 if __name__ == '__main__':
     args = parseArguments()
