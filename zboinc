@@ -104,7 +104,7 @@ if __name__ == '__main__':
     try:
         db_host = config.get('mysql', 'host')
         db_user = config.get('mysql', 'user')
-        db_password = config.get('mysql', 'password')
+        db_pw = config.get('mysql', 'password')
         db_db = config.get('mysql', 'db')
     except ConfigParser.Error:
         failMiserably("Could not get values from config file")
