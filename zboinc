@@ -26,7 +26,7 @@ boinc_serverstate = {
         'over': 5}
 
 def warning(*objs):
-        print("WARNING: ", *objs, end='\n', file=sys.stderr)
+    print("WARNING: ", *objs, end='\n', file=sys.stderr)
 
 def doSqlQuery(db, sql, params):
     cursor = db.cursor()
