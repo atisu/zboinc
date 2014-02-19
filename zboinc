@@ -1,8 +1,8 @@
 #!/usr/bin/python
 #
-# BOINC plugin for Zabbix v1.00
+# BOINC plugin for Zabbix v1.01 - 2014-02-19
 # Attila Csaba Marosi <marosi.attila@sztaki.mta.hu>
-#
+# 
 # - Requires argparse
 # - Add something like the following to zabbix_agent.conf:
 #   UserParameter=boinc[*],/usr/local/sbin/zboinc \
@@ -13,11 +13,6 @@ import MySQLdb
 import sys
 import argparse
 import ConfigParser
-
-db_host = ""
-db_pw   = ""
-db_user = ""
-db_db   = ""
 
 boinc_serverstate = {
         'inactive': 1,
@@ -37,7 +32,7 @@ def doSqlQuery(db, sql, params):
             cursor.execute(sql, params)
         results = cursor.fetchall()
     except:
-        warning("SQL Query returned no results: %s" % sql)
+        warning("SQL Query returned no results: '%s'." % sql)
         return -1 
     return results[0]
 
@@ -97,17 +92,21 @@ def failMiserably(message=""):
     sys.exit(255)
 
 if __name__ == '__main__':
+    db_host = ""
+    db_pw = ""
+    db_user = ""
+    db_db = ""
     args = parseArguments()
     config = parseConfig(args.config)
     if (config == -1):
-        failMiserably("Could not parse config file")
+        failMiserably("Could not parse config file.")
     try:
         db_host = config.get('mysql', 'host')
         db_user = config.get('mysql', 'user')
         db_pw = config.get('mysql', 'password')
         db_db = config.get('mysql', 'db')
     except ConfigParser.Error:
-        failMiserably("Could not get values from config file")
+        failMiserably("Could not get values from config file.")
     try:
         db = MySQLdb.connect(db_host, db_user, db_pw, db_db)
     except MySQLdb.Error:
