@@ -9,10 +9,14 @@
 #        -c /usr/local/etc/zboinc.conf -a \$1 -s \$2
 
 from __future__ import print_function
-import MySQLdb
 import sys
+import logging
+import logging.handlers
 import argparse
 import ConfigParser
+import MySQLdb
+
+zlogger = None
 
 boinc_serverstate = {
         'inactive': 1,
@@ -20,8 +24,38 @@ boinc_serverstate = {
         'inprogress': 4,
         'over': 5}
 
+def loggingInit():
+    global zlogger
+    zlogger = logging.getLogger("zboinc")
+    zhandler = logging.handlers.SysLogHandler(address = '/dev/log')
+    format='%(name)s %(process)d %(levelname)s %(message)s'
+    f = logging.Formatter(format)
+    zhandler.setFormatter(f)
+    zlogger.setLevel(logging.DEBUG)
+    zlogger.addHandler(zhandler)
+    debug("Logging to syslog initialized with default level {0}".format(logging.DEBUG))
+
+def loggingSetLevel(log_level):
+    LEVELS = {'DEBUG': logging.DEBUG,
+              'INFO': logging.INFO,
+              'WARNING': logging.WARNING,
+              'ERROR': logging.ERROR,
+              'CRITICAL': logging.CRITICAL}
+    zlevel = LEVELS.get(log_level, logging.NOTSET)
+    zlogger.setLevel(zlevel)
+    debug("Logging level modified to {0}".format(zlevel))
+
 def warning(*objs):
-    print("WARNING: ", *objs, end='\n', file=sys.stderr)
+    if (zlogger is None):
+        print("WARNING: ", *objs, end='\n', file=sys.stderr)
+    else:
+        zlogger.warning(*objs)   
+
+def debug(*objs):
+    if (zlogger is None):
+        print("DEBUG: ", *objs, end='\n', file=sys.stderr)
+    else:
+        zlogger.debug(*objs)   
 
 def doSqlQuery(db, sql, params):
     cursor = db.cursor()
@@ -88,6 +122,10 @@ def parseConfig(configpath):
 def failMiserably(message=""):
     if (message != ""):
         warning(message)
+        debug(message)
+    else:
+        warning("no message")
+        debug("no message")
     print("ZBX_NOTSUPPORTED") 
     sys.exit(255)
 
@@ -96,24 +134,34 @@ if __name__ == '__main__':
     db_pw = ""
     db_user = ""
     db_db = ""
-    args = parseArguments()
-    config = parseConfig(args.config)
-    if (config == -1):
-        failMiserably("Could not parse config file.")
+    log_level = ""
+    loggingInit()
     try:
-        db_host = config.get('mysql', 'host')
-        db_user = config.get('mysql', 'user')
-        db_pw = config.get('mysql', 'password')
-        db_db = config.get('mysql', 'db')
-    except ConfigParser.Error:
-        failMiserably("Could not get values from config file.")
-    try:
-        db = MySQLdb.connect(db_host, db_user, db_pw, db_db)
-    except MySQLdb.Error:
-        failMiserably("Could not connect to mysql/ database. Check config file."); 
-    result = getResultCount(db, args.appname, args.serverstate)
-    if (result == -1):
-        print("ZBX_NOTSUPPORTED") 
-    else:
-        print(*result)
-
+        args = parseArguments()
+        config = parseConfig(args.config)
+        if (config == -1):
+            failMiserably("Could not parse config file.")
+        try:
+            log_level = config.get('options', 'log-level')
+            db_host = config.get('mysql', 'host')
+            db_user = config.get('mysql', 'user')
+            db_pw = config.get('mysql', 'password')
+            db_db = config.get('mysql', 'db')
+        except ConfigParser.Error:
+            failMiserably("Could not get values from config file.")
+        loggingSetLevel(log_level)
+        try:
+            db = MySQLdb.connect(db_host, db_user, db_pw, db_db)
+        except MySQLdb.Error:
+            failMiserably("Could not connect to mysql/ database. Check config file."); 
+        result = getResultCount(db, args.appname, args.serverstate)
+        if (result == -1):
+            failMiserably("query appname={0}, serverstate={1} failed".format(args.appname, 
+                args.serverstate)
+        else:
+            print(*result)
+            debug("result of query appname={0}, serverstate={1} is: {2}".format(args.appname, 
+                args.serverstate, *result))
+    except Exception, e :
+        failMiserably("nagy gebasz van: {0}".format(str(e)))
+    sys.exit(0)
